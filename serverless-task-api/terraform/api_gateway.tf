@@ -130,3 +130,46 @@ resource "aws_lambda_permission" "api_gateway" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
+
+# ========================================
+# Deployment and Stage
+# ========================================
+
+resource "aws_api_gateway_deployment" "deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+
+  # Trigger redeployment when API changes
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.tasks.id,
+      aws_api_gateway_resource.task_id.id,
+      aws_api_gateway_method.get_tasks.id,
+      aws_api_gateway_method.post_tasks.id,
+      aws_api_gateway_method.get_task.id,
+      aws_api_gateway_method.put_task.id,
+      aws_api_gateway_method.delete_task.id,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.get_tasks,
+    aws_api_gateway_integration.post_tasks,
+    aws_api_gateway_integration.get_task,
+    aws_api_gateway_integration.put_task,
+    aws_api_gateway_integration.delete_task,
+  ]
+}
+
+resource "aws_api_gateway_stage" "stage" {
+  deployment_id = aws_api_gateway_deployment.deployment.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = var.environment
+
+  tags = {
+    Name = "${local.name_prefix}-stage"
+  }
+}
