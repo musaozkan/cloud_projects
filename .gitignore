@@ -1,0 +1,40 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform.lock.hcl
+*.tfvars
+!example.tfvars
+
+# Lambda
+*.zip
+__pycache__/
+*.pyc
+.python-version
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local development
+.localstack/
+localstack_volume/
+
+# Environment files
+.env
+.env.local
+*.local
+
+# Node (if any frontend)
+node_modules/
