@@ -1,11 +1,13 @@
 """
 Task Manager Lambda Handler
-Implementing GET endpoint for listing tasks
+Implementing GET and POST endpoints
 """
 
 import json
 import os
+import uuid
 import logging
+from datetime import datetime
 from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
@@ -84,6 +86,54 @@ def get_task(task_id):
         })
 
 
+def create_task(body):
+    """POST /tasks - Create a new task"""
+    try:
+        # Parse request body
+        if isinstance(body, str):
+            data = json.loads(body)
+        else:
+            data = body
+        
+        # Validate required fields
+        if 'title' not in data:
+            return create_response(400, {
+                'success': False,
+                'error': 'Title is required'
+            })
+        
+        # Create task item
+        task = {
+            'id': str(uuid.uuid4()),
+            'title': data['title'],
+            'description': data.get('description', ''),
+            'status': data.get('status', 'pending'),
+            'created_at': datetime.utcnow().isoformat(),
+            'updated_at': datetime.utcnow().isoformat()
+        }
+        
+        # Save to DynamoDB
+        table.put_item(Item=task)
+        
+        logger.info(f"Created task: {task['id']}")
+        return create_response(201, {
+            'success': True,
+            'message': 'Task created successfully',
+            'task': task
+        })
+    except json.JSONDecodeError:
+        return create_response(400, {
+            'success': False,
+            'error': 'Invalid JSON in request body'
+        })
+    except ClientError as e:
+        logger.error(f"Error creating task: {e}")
+        return create_response(500, {
+            'success': False,
+            'error': 'Failed to create task'
+        })
+
+
 def lambda_handler(event, context):
     """Main Lambda handler"""
     logger.info(f"Event: {json.dumps(event)}")
@@ -91,12 +141,16 @@ def lambda_handler(event, context):
     http_method = event.get('httpMethod', '')
     path_params = event.get('pathParameters') or {}
     task_id = path_params.get('id')
+    body = event.get('body', '{}')
     
     # Route to appropriate handler
     if http_method == 'GET':
         if task_id:
             return get_task(task_id)
         return get_all_tasks()
+    
+    elif http_method == 'POST':
+        return create_task(body)
     
     return create_response(405, {
         'success': False,
