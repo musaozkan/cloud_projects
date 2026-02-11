@@ -1,15 +1,5 @@
 # Lambda Function Configuration
 
-# Add archive provider for zipping the Lambda code
-terraform {
-  required_providers {
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.0"
-    }
-  }
-}
-
 # Package the Lambda function code
 data "archive_file" "lambda_zip" {
   type        = "zip"
